@@ -11,7 +11,7 @@ int main()
 	int Cnt = 0;
 	int Cnt1 = 2;
 	int Cnt2 = 100;
-	Log->SetLogDirectory (L"../test1");
+	Log->SetLogDirectory (L"../SYSTEM_LOG");
 
 	Log->Log (L"Network", LOG_DEBUG, L"LogLevel %d,%d,Cnt = %d", Cnt, Cnt1, Cnt2);
 	Sleep (1);

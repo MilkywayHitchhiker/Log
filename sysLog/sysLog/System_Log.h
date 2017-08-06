@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <locale.h>
+#include <Strsafe.h>
 
 enum en_LOG_LEVEL
 {
@@ -96,27 +97,27 @@ namespace hiker
 			__int64 No = InterlockedIncrement64 (&_LogNo);
 
 
-			wsprintf (buf, L"\n[  %-3I64d] [ %-5s ] [%-4d-%-1d-%-1d %-1d:%-1d:%-1d", No, szType, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+			wsprintf (buf, L"\n[%08I64d] [ %-5s ] [%04d-%02d-%02d %02d:%02d:%02d", No, szType, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
 
 			switch ( LogLevel )
 			{
 			case LOG_DEBUG :
-				lstrcatW (buf, L" / DEBUG ]  ");
+				StringCbCat (buf,128, L" / DEBUG ]  ");
 				break;
 
 			case LOG_WARNING:
-				lstrcatW (buf, L" / WARNING ]  ");
+				StringCbCat (buf, 128, L" / WARNING ]  ");
 				break;
 			case LOG_ERROR :
-				lstrcatW (buf, L" / ERROR ]  ");
+				StringCbCat (buf, 128, L" / ERROR ]  ");
 				break;
 			case LOG_SYSTEM :
-				lstrcatW (buf, L" / SYSTEM ]  ");
+				StringCbCat (buf, 128, L" / SYSTEM ]  ");
 				break;
 			}
 
 			va_start (va, szStringFormat);
-			vswprintf_s (Logstr, 512, szStringFormat, va);
+			StringCchVPrintf (Logstr, 512, szStringFormat, va);
 			va_end (va);
 
 
