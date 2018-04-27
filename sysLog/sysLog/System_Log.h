@@ -29,6 +29,7 @@ namespace hiker
 			setlocale (LC_ALL, "");
 			_SaveLogLevel = Level;
 			_LogNo = 0;
+			_windowprint = false;
 			return;
 		}
 		~CSystemLog (void)
@@ -54,9 +55,10 @@ namespace hiker
 		//------------------------------------------------------
 		// 외부에서 로그레벨 제어
 		//------------------------------------------------------
-		void SetLogLevel (en_LOG_LEVEL LogLevel)
+		void SetLogLevel (en_LOG_LEVEL LogLevel, BOOL CONSOLE = false)
 		{
 			_SaveLogLevel = LogLevel;
+			_windowprint = CONSOLE;
 			return;
 		}
 
@@ -117,11 +119,15 @@ namespace hiker
 			}
 
 			va_start (va, szStringFormat);
-			StringCchVPrintf (Logstr, 512, szStringFormat, va);
+			int hResult = StringCchVPrintf (Logstr, 512, szStringFormat, va);
 			va_end (va);
 
-
 			AcquireSRWLockExclusive (&_srwLock);
+
+			if ( FAILED (hResult) )
+			{
+				// 로그 저장 실패시 실패로그 저장처리.
+			}
 
 			_wfopen_s (&fp, FileName, L"a+t,ccs=UNICODE");
 
@@ -131,6 +137,11 @@ namespace hiker
 			fclose (fp);
 
 			ReleaseSRWLockExclusive (&_srwLock);
+
+			if ( _windowprint )
+			{
+				wprintf (L"[%04d-%02d-%02d %02d:%02d:%02d] %s", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, Logstr);
+			}
 			
 
 		}
@@ -140,7 +151,65 @@ namespace hiker
 		//------------------------------------------------------
 		void LogHex (WCHAR *szType, en_LOG_LEVEL LogLevel, WCHAR *szLog, BYTE *pByte, int iByteLen)
 		{
+			time_t Time;
+			struct tm t;
 
+			WCHAR FileName[128];
+			WCHAR buf[128] = { 0, };
+			WCHAR Logstr[512] = { 0, };
+			va_list va;
+			FILE *fp;
+
+			if ( LogLevel < _SaveLogLevel )
+			{
+				return;
+			}
+
+
+			Time = time (NULL);
+			localtime_s (&t, &Time);
+
+			wsprintf (FileName, L"%s\\%-4d_%-1d_%ls.txt", _SaveDirectory, t.tm_year + 1900, t.tm_mon + 1, szType);
+
+			__int64 No = InterlockedIncrement64 (&_LogNo);
+
+
+			wsprintf (buf, L"\n[%08I64d] [ %-5s ] [%04d-%02d-%02d %02d:%02d:%02d", No, szType, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec);
+
+			switch ( LogLevel )
+			{
+			case LOG_DEBUG:
+				StringCbCat (buf, 128, L" / DEBUG ]  ");
+				break;
+
+			case LOG_WARNING:
+				StringCbCat (buf, 128, L" / WARNING ]  ");
+				break;
+			case LOG_ERROR:
+				StringCbCat (buf, 128, L" / ERROR ]  ");
+				break;
+			case LOG_SYSTEM:
+				StringCbCat (buf, 128, L" / SYSTEM ]  ");
+				break;
+			}
+
+			StringCchPrintf (Logstr, _countof (Logstr), _T ("%lls  [ %X ]"), szLog,  pByte);
+
+			AcquireSRWLockExclusive (&_srwLock);
+
+			_wfopen_s (&fp, FileName, L"a+t,ccs=UNICODE");
+
+			fwprintf_s (fp, buf);
+			fwprintf_s (fp, Logstr);
+
+			fclose (fp);
+
+			ReleaseSRWLockExclusive (&_srwLock);
+
+			if ( _windowprint )
+			{
+				wprintf (L"%s", Logstr);
+			}
 		}
 
 		//------------------------------------------------------
@@ -159,6 +228,7 @@ namespace hiker
 
 		en_LOG_LEVEL	_SaveLogLevel;
 		WCHAR			_SaveDirectory[25];
+		BOOL _windowprint;
 	};
 	CSystemLog *CSystemLog::pLog = nullptr;
 }
