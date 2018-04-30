@@ -4,19 +4,24 @@
 #include "stdafx.h"
 #include"System_Log.h"
 
-hiker::CSystemLog *Log = hiker::CSystemLog::GetInstance (LOG_DEBUG);
+
 
 int main()
 {
+	int num1 = 10;
+	int num2 = 100;
+	char a[] = "123456789123456789123144567891234657986";
 
-	Log->SetLogDirectory (L"SYSTEM_LOG");
+	SYSLOG_DIRECTORY(L"SYSTEM_LOG")
 
-	Log->Log (L"Network", LOG_SYSTEM, L"Network LogStart");
+	SYSLOG_LOG (L"Network", LOG_SYSTEM, L"Network LogStart");
 	Sleep (1);
-	Log->Log (L"Game", LOG_SYSTEM, L"Game LogStart");
+	SYSLOG_LOG (L"GAME", LOG_SYSTEM, L"Network Log1 d1 = %d,d2 = %d ============================================================================================================================================================================================================================123456789",num1,num2);
 	Sleep (10);
-	Log->SetLogLevel (LOG_ERROR);
-	Log->Log (L"Network", LOG_SYSTEM, L"Network LogEnd");
+	SYSLOG_LEVEL(LOG_SYSTEM,true)
+	SYSLOG_LOG (L"Network", LOG_SYSTEM, L"Network LogEnd");
+	
+	SYSLOG_LOGHEX (L"Network", LOG_SYSTEM, L"HEX Log", (byte *)a, sizeof (a));
     return 0;
 }
 
