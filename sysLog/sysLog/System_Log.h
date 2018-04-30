@@ -224,7 +224,7 @@ namespace hiker
 
 
 		//------------------------------------------------------
-		// SessionKey 64개 출력 전용. 이는 문자열이 아니라서 마지막에 널이 없음.
+		// SessionKey 64bit 출력 전용.
 		//------------------------------------------------------
 		void LogSessionKey (WCHAR *szType, en_LOG_LEVEL LogLevel, WCHAR *szLog, BYTE *pSessionKey)
 		{
