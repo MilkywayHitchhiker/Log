@@ -5,12 +5,13 @@
 #include"System_Log.h"
 
 
-
 int main()
 {
 	int num1 = 10;
 	int num2 = 100;
 	char a[] = "123456789123456789123144567891234657986";
+	unsigned long long SessionKey;
+	SessionKey = 0xf1200034L;
 
 	SYSLOG_DIRECTORY(L"SYSTEM_LOG")
 
@@ -22,6 +23,7 @@ int main()
 	SYSLOG_LOG (L"Network", LOG_SYSTEM, L"Network LogEnd");
 	
 	SYSLOG_LOGHEX (L"Network", LOG_SYSTEM, L"HEX Log", (byte *)a, sizeof (a));
+	SYSLOG_LOGSession (L"Session", LOG_SYSTEM, L"SessionKey = ", ( byte * )&SessionKey);
     return 0;
 }
 

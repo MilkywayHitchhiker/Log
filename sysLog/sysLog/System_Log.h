@@ -26,6 +26,7 @@ namespace hiker
 #define HeaderLength 128
 #define LogstrLength 1024
 #define HEXLength 1024
+#define SessionLength 32
 	private:
 
 		CSystemLog (en_LOG_LEVEL Level)
@@ -183,7 +184,7 @@ namespace hiker
 				}
 				else
 				{
-					wsprintf (buff, L"%02X : ", pByte[cnt]);
+					wsprintf (buff, L"%02X ", pByte[cnt]);
 				}
 
 				retval = StringCchCat (HEX, HEXLength, buff);
@@ -215,7 +216,7 @@ namespace hiker
 			{
 				Time = time (NULL);
 				localtime_s (&t, &Time);
-				wprintf (L"[%02d %02d:%02d:%02d] %s  [ HEX ] = %s \n", t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, Logstr, HEX);
+				wprintf (L"[%04d-%02d-%02d %02d:%02d:%02d] %s %s \n", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, Logstr, HEX);
 			}
 		}
 
@@ -228,6 +229,59 @@ namespace hiker
 		void LogSessionKey (WCHAR *szType, en_LOG_LEVEL LogLevel, WCHAR *szLog, BYTE *pSessionKey)
 		{
 
+
+			WCHAR FileName[FileNameLength];
+			WCHAR Header[HeaderLength];
+			WCHAR Logstr[LogstrLength] = { 0, };
+			WCHAR SessionKey[SessionLength] = { 0, };
+			FILE *fp;
+
+			if ( LogLevel < _SaveLogLevel )
+			{
+				return;
+			}
+
+			HeaderSetting (FileName, Header, szType, LogLevel);
+
+
+			//여기서 바이너리 로그 스트링 셋팅.
+			int retval;
+
+			retval = StringCchPrintf (Logstr, LogstrLength, L"%s ", szLog);
+			// 로그 길이 오버로 인한 저장 실패시 실패로그 저장처리.
+			if ( FAILED (retval) )
+			{
+				WCHAR Logbuff[LogstrLength];
+				wsprintf (Logbuff, L"[ LOG_BUFFER_OVERFLOW ] [ Data ] = ");
+				StringCchCat (Logbuff, LogstrLength - 31, Logstr);
+
+				wsprintf (Logstr, Logbuff);
+			}
+
+
+			//HEX 로그 스트링 셋팅.
+			unsigned long long *pKey = (unsigned long long *)pSessionKey;
+			wsprintf (SessionKey, L"%X ", *pKey);
+
+
+			AcquireSRWLockExclusive (&_srwLock);
+
+			_wfopen_s (&fp, FileName, L"a+t,ccs=UNICODE");
+
+			fwprintf_s (fp, Header);
+			fwprintf_s (fp, Logstr);
+			fwprintf_s (fp, SessionKey);
+
+			fclose (fp);
+
+			ReleaseSRWLockExclusive (&_srwLock);
+
+			if ( _windowprint )
+			{
+				Time = time (NULL);
+				localtime_s (&t, &Time);
+				wprintf (L"[%04d-%02d-%02d %02d:%02d:%02d] %s %s \n", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, Logstr, SessionKey);
+			}
 		}
 		
 
@@ -297,9 +351,11 @@ hiker::CSystemLog *Log = hiker::CSystemLog::GetInstance (LOG_DEBUG);
 #define SYSLOG_LEVEL(level,console)	Log->SetLogLevel(level,console);
 #define SYSLOG_LOG(type,level,fmt,...) Log->Log(type,level,fmt,__VA_ARGS__);
 #define SYSLOG_LOGHEX(type,level,strLog,pByte,ByteLength)	Log->LogHex(type,level,strLog,pByte,ByteLength);
+#define SYSLOG_LOGSession(type, level, strLog, pSessionKey)	Log->LogSessionKey (type, level, strLog, pSessionKey);
 #else
 #define SYSLOG_DIRECTORY(dir)
 #define SYSLOG_LEVEL(level,console)
 #define SYSLOG_LOG(type,level,fmt,...)
 #define SYSLOG_LOGHEX(type,level,strLog,pByte,ByteLength)
+#define SYSLOG_LOGSession(type, level, strLog, pSessionKey)
 #endif
